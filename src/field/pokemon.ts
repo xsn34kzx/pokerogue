@@ -51,6 +51,7 @@ import { Biome } from "#enums/biome";
 import { Moves } from "#enums/moves";
 import { Species } from "#enums/species";
 import { getPokemonNameWithAffix } from "#app/messages.js";
+import { InBattleStat, PermanentStat } from "#app/enums/stat.js";
 
 export enum FieldPosition {
   CENTER,
@@ -674,7 +675,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
    * @param ignoreOverride {@linkcode boolean} to prefer actual stats (`true`) or in-battle overridden stats (`false`)
    * @returns the numeric value of the desired {@linkcode Stat}
    */
-  getStat(stat: Stat, ignoreOverride: boolean = true): number {
+  getStat(stat: PermanentStat, ignoreOverride: boolean = true): number {
     if (!ignoreOverride && this.summonData?.stats[stat] !== 0) {
       return this.summonData.stats[stat];
     }
@@ -689,7 +690,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
    * @param value the desired numeric value to be written to the desired {@linkcode Stat}
    * @param ignoreOverride {@linkcode boolean} to write to actual stats (`true`) or to in-battle overridden stats (`false`)
    */
-  setStat(stat: Stat, value: number, ignoreOverride: boolean = true) {
+  setStat(stat: PermanentStat, value: number, ignoreOverride: boolean = true) {
     if (value >= 0) {
       if (!ignoreOverride && this.summonData) {
         this.summonData.stats[stat] = value;
@@ -699,12 +700,42 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     }
   }
 
-  getBattleStat(stat: Stat, opponent?: Pokemon, move?: Move, isCritical: boolean = false): integer {
-    if (stat === Stat.HP) {
-      return this.getStat(Stat.HP);
+  getStatStage(stat: InBattleStat): number | null {
+    if (this.summonData) {
+      return this.summonData.battleStats[stat - 1];
     }
-    const battleStat = (stat - 1) as BattleStat;
-    const statLevel = new Utils.IntegerHolder(this.summonData.battleStats[battleStat]);
+    return null;
+  }
+
+  calculateInBattleStat(stat: InBattleStat & PermanentStat, target?: Pokemon, move?: Move, isCritical: boolean = false): number {
+    const stage = new Utils.IntegerHolder(this.getStatStage(stat));
+    const calculated = new Utils.NumberHolder(this.getStat(stat, false));
+
+    if (target) {
+      if (isCritical) {
+        switch (stat) {
+        case Stat.ATK:
+        case Stat.SPATK:
+          Math.max(stage.value, 0);
+          break;
+        case Stat.DEF:
+        case Stat.SPDEF:
+          Math.min(stage.value, 0);
+          break;
+        }
+      }
+
+      applyAbAttrs(IgnoreOpponentStatChangesAbAttr, target, null, stage);
+      if (move) {
+        applyMoveAttrs(IgnoreOpponentStatChangesAttr, this, target, move, stage);
+      }
+    }
+
+    return Math.floor(calculated.value);
+  }
+
+  getBattleStat(stat: InBattleStat, opponent?: Pokemon, move?: Move, isCritical: boolean = false): integer {
+    const statLevel = new Utils.IntegerHolder(this.getStatStage(stat));
     if (opponent) {
       if (isCritical) {
         switch (stat) {
@@ -4078,7 +4109,7 @@ export interface AttackMoveResult {
 }
 
 export class PokemonSummonData {
-  public battleStats: integer[] = [ 0, 0, 0, 0, 0, 0, 0 ];
+  public statStages: number[] = [ 0, 0, 0, 0, 0, 0, 0 ];
   public moveQueue: QueuedMove[] = [];
   public disabledMove: Moves = Moves.NONE;
   public disabledTurns: integer = 0;
