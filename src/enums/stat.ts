@@ -2,21 +2,23 @@ export enum Stat {
   /** Hit Points */
   HP = 0,
   /** Attack */
-  ATK,
+  ATK = 1,
   /** Defense */
-  DEF,
+  DEF = 2,
   /** Special Attack */
-  SPATK,
+  SPATK = 3,
   /** Special Defense */
-  SPDEF,
+  SPDEF = 4,
   /** Speed */
-  SPD,
+  SPD = 5,
   /** Accuracy */
-  ACC,
+  ACC = 6,
   /** Evasiveness */
-  EVA
+  EVA = 7
 }
 
-export type PermanentStat = Exclude<Stat, Stat.ACC | Stat.EVA >;
+export type PermanentStat = Exclude<Stat, Stat.ACC | Stat.EVA>;
 
-export type InBattleStat = Exclude<Stat, Stat.HP>;
+export type BattleStat = Exclude<Stat, Stat.HP>;
+
+export type TempBattleStat = Exclude<BattleStat, Stat.EVA>;

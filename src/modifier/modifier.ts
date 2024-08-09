@@ -11,7 +11,7 @@ import { EvolutionPhase } from "../evolution-phase";
 import { FusionSpeciesFormEvolution, pokemonEvolutions, pokemonPrevolutions } from "../data/pokemon-evolutions";
 import { getPokemonNameWithAffix } from "../messages";
 import * as Utils from "../utils";
-import { TempBattleStat } from "../data/temp-battle-stat";
+import { BattleStat, TempBattleStat } from "#app/enums/stat";
 import { getBerryEffectFunc, getBerryPredicate } from "../data/berry";
 import { BattlerTagType} from "#enums/battler-tag-type";
 import { BerryType } from "#enums/berry-type";
@@ -358,41 +358,75 @@ export class DoubleBattleChanceBoosterModifier extends LapsingPersistentModifier
   }
 }
 
-export class TempBattleStatBoosterModifier extends LapsingPersistentModifier {
-  private tempBattleStat: TempBattleStat;
+export class TempStatStageBoosterModifier extends LapsingPersistentModifier {
+  private stat: TempBattleStat;
 
-  constructor(type: ModifierTypes.TempBattleStatBoosterModifierType, tempBattleStat: TempBattleStat, battlesLeft?: integer, stackCount?: integer) {
-    super(type, battlesLeft || 5, stackCount);
+  constructor(type: ModifierTypes.TempStatStageBoosterModifierType, stat: TempBattleStat, battlesLeft?: integer, stackCount?: integer) {
+    super(type, battlesLeft ?? 5, stackCount);
 
-    this.tempBattleStat = tempBattleStat;
+    this.stat = stat;
   }
 
   match(modifier: Modifier): boolean {
-    if (modifier instanceof TempBattleStatBoosterModifier) {
-      return (modifier as TempBattleStatBoosterModifier).tempBattleStat === this.tempBattleStat
-        && (modifier as TempBattleStatBoosterModifier).battlesLeft === this.battlesLeft;
+    if (modifier instanceof TempStatStageBoosterModifier) {
+      const m = modifier as TempStatStageBoosterModifier;
+      return (m.stat === this.stat) && (m.battlesLeft === this.battlesLeft);
     }
     return false;
   }
 
-  clone(): TempBattleStatBoosterModifier {
-    return new TempBattleStatBoosterModifier(this.type as ModifierTypes.TempBattleStatBoosterModifierType, this.tempBattleStat, this.battlesLeft, this.stackCount);
+  clone(): TempStatStageBoosterModifier {
+    return new TempStatStageBoosterModifier(this.type as ModifierTypes.TempStatStageBoosterModifierType, this.stat, this.battlesLeft, this.stackCount);
   }
 
   getArgs(): any[] {
-    return [ this.tempBattleStat, this.battlesLeft ];
+    return [ this.stat, this.battlesLeft ];
+  }
+
+  shouldApply(args: any[]): boolean {
+    const stat = args[0];
+    return (typeof stat === "number") && (args[1] instanceof Utils.IntegerHolder) && (stat === this.stat);
   }
 
   apply(args: any[]): boolean {
-    const tempBattleStat = args[0] as TempBattleStat;
+    (args[1] as Utils.IntegerHolder).value++;
+    return true;
+  }
+}
 
-    if (tempBattleStat === this.tempBattleStat) {
-      const statLevel = args[1] as Utils.IntegerHolder;
-      statLevel.value = Math.min(statLevel.value + 1, 6);
-      return true;
+export class TempCritBoosterModifier extends LapsingPersistentModifier {
+  constructor(type: ModifierTypes.ModifierType, battlesLeft?: number, stackCount?: number) {
+    super(type, battlesLeft ?? 5, stackCount);
+  }
+
+  match(modifier: Modifier): boolean {
+    if (modifier instanceof TempCritBoosterModifier) {
+      return (modifier as TempCritBoosterModifier).battlesLeft === this.battlesLeft;
     }
-
     return false;
+  }
+
+  clone(): TempCritBoosterModifier {
+    return new TempCritBoosterModifier(this.type, this.battlesLeft, this.stackCount);
+  }
+
+  getArgs(): any[] {
+    return [ this.battlesLeft ];
+  }
+
+  shouldApply(args: any[]): boolean {
+    return (args[0] instanceof Utils.NumberHolder);
+  }
+
+  /**
+   * Increases the current critical-hit stage value by {@linkcode stageIncrement}.
+   * @param args [0] {@linkcode Pokemon} N/A
+   *             [1] {@linkcode Utils.IntegerHolder} that holds the resulting critical-hit level
+   * @returns true if the critical-hit stage boost applies successfully, false otherwise
+   */
+  apply(args: any[]): boolean {
+    (args[0] as Utils.NumberHolder).value++;
+    return true;
   }
 }
 
@@ -1396,17 +1430,25 @@ export class PokemonInstantReviveModifier extends PokemonHeldItemModifier {
  * @extends PokemonHeldItemModifier
  * @see {@linkcode apply}
  */
-export class PokemonResetNegativeStatStageModifier extends PokemonHeldItemModifier {
+export class ResetNegativeStatStageModifier extends PokemonHeldItemModifier {
   constructor(type: ModifierType, pokemonId: integer, stackCount?: integer) {
     super(type, pokemonId, stackCount);
   }
 
   matchType(modifier: Modifier) {
-    return modifier instanceof PokemonResetNegativeStatStageModifier;
+    return modifier instanceof ResetNegativeStatStageModifier;
   }
 
   clone() {
-    return new PokemonResetNegativeStatStageModifier(this.type, this.pokemonId, this.stackCount);
+    return new ResetNegativeStatStageModifier(this.type, this.pokemonId, this.stackCount);
+  }
+
+  shouldApply(args: any[]): boolean {
+    if (super.shouldApply(args)) {
+      const statStages = (args[0] as Pokemon).getStatStages();
+      return statStages && statStages.some(s => s < 0);
+    }
+    return false;
   }
 
   /**
@@ -1416,18 +1458,16 @@ export class PokemonResetNegativeStatStageModifier extends PokemonHeldItemModifi
    */
   apply(args: any[]): boolean {
     const pokemon = args[0] as Pokemon;
-    const loweredStats = pokemon.summonData.battleStats.filter(s => s < 0);
-    if (loweredStats.length) {
-      for (let s = 0; s < pokemon.summonData.battleStats.length; s++) {
-        pokemon.summonData.battleStats[s] = Math.max(0, pokemon.summonData.battleStats[s]);
+    for (let s = Stat.ATK; s <= Stat.EVA; s++) {
+      if (pokemon.getStatStage(s as BattleStat) < 0) {
+        pokemon.setStatStage(s as BattleStat, 0);
       }
-      pokemon.scene.queueMessage(i18next.t("modifier:pokemonResetNegativeStatStageApply", { pokemonNameWithAffix: getPokemonNameWithAffix(pokemon), typeName: this.type.name }));
-      return true;
     }
-    return false;
+    pokemon.scene.queueMessage(i18next.t("modifier:pokemonResetNegativeStatStageApply", { pokemonNameWithAffix: getPokemonNameWithAffix(pokemon), typeName: this.type.name }));
+    return true;
   }
 
-  getMaxHeldItemCount(pokemon: Pokemon): integer {
+  getMaxHeldItemCount(_pokemon: Pokemon): integer {
     return 2;
   }
 }

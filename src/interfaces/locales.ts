@@ -35,10 +35,9 @@ export interface ModifierTypeTranslationEntry {
 
 export interface ModifierTypeTranslationEntries {
     ModifierType: { [key: string]: ModifierTypeTranslationEntry },
-    SpeciesBoosterItem: { [key: string]: ModifierTypeTranslationEntry },
+    SpeciesStatBoosterItem: { [key: string]: ModifierTypeTranslationEntry },
+    TempStatStageBoosterItem: SimpleTranslationEntries,
     AttackTypeBoosterItem: SimpleTranslationEntries,
-    TempBattleStatBoosterItem: SimpleTranslationEntries,
-    TempBattleStatBoosterStatName: SimpleTranslationEntries,
     BaseStatBoosterItem: SimpleTranslationEntries,
     EvolutionItem: SimpleTranslationEntries,
     FormChangeItem: SimpleTranslationEntries,

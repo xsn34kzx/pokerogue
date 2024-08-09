@@ -11,6 +11,9 @@ export enum BattleStat {
   RAND
 }
 
+
+// TODO: change this to inbattlestat obv
+// think about using a record to store temp pair
 export function getBattleStatName(stat: BattleStat) {
   switch (stat) {
   case BattleStat.ATK:
@@ -32,37 +35,18 @@ export function getBattleStatName(stat: BattleStat) {
   }
 }
 
-export function getBattleStatLevelChangeDescription(pokemonNameWithAffix: string, stats: string, levels: integer, up: boolean, count: number = 1) {
-  const stringKey = (() => {
-    if (up) {
-      switch (levels) {
-      case 1:
-        return "battle:statRose";
-      case 2:
-        return "battle:statSharplyRose";
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-        return "battle:statRoseDrastically";
-      default:
-        return "battle:statWontGoAnyHigher";
-      }
-    } else {
-      switch (levels) {
-      case 1:
-        return "battle:statFell";
-      case 2:
-        return "battle:statHarshlyFell";
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-        return "battle:statSeverelyFell";
-      default:
-        return "battle:statWontGoAnyLower";
-      }
-    }
-  })();
-  return i18next.t(stringKey as ParseKeys, { pokemonNameWithAffix, stats, count });
+// TODO: Remove this i18next call, move it to the outside
+export function getBattleStatStageChangeDescription(pokemonNameWithAffix: string, stats: string, stages: number, isIncrease: boolean, count: number = 1) {
+  let key: string;
+  if (stages === 1) {
+    key = isIncrease ? "battle:statRose" : "battle:statFell";
+  } else if (stages === 2) {
+    key = isIncrease ? "battle:statSharplyRose" : "battle:statHarshlyFell";
+  } else if (stages <= 6) {
+    key = isIncrease ? "battle:statRoseDrastically" : "battle:statSeverelyFell";
+  } else {
+    key = isIncrease ? "battle:statWontGoAnyHigher" : "battle:statWontGoAnyLower";
+  }
+
+  return i18next.t(key as ParseKeys, { pokemonNameWithAffix, stats, count });
 }

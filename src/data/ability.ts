@@ -2,7 +2,7 @@ import Pokemon, { HitResult, PlayerPokemon, PokemonMove } from "../field/pokemon
 import { Type } from "./type";
 import { Constructor } from "#app/utils";
 import * as Utils from "../utils";
-import { BattleStat, getBattleStatName } from "./battle-stat";
+import { getBattleStatName } from "./battle-stat";
 import { MovePhase, PokemonHealPhase, ShowAbilityPhase, StatChangePhase } from "../phases";
 import { getPokemonNameWithAffix } from "../messages";
 import { Weather, WeatherType } from "./weather";
@@ -26,6 +26,7 @@ import { ArenaTagType } from "#enums/arena-tag-type";
 import { BattlerTagType } from "#enums/battler-tag-type";
 import { Moves } from "#enums/moves";
 import { Species } from "#enums/species";
+import { BattleStat } from "../enums/stat";
 
 export class Ability implements Localizable {
   public id: Abilities;

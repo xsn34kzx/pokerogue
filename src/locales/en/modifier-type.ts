@@ -51,8 +51,8 @@ export const modifierType: ModifierTypeTranslationEntries = {
     "DoubleBattleChanceBoosterModifierType": {
       description: "Doubles the chance of an encounter being a double battle for {{battleCount}} battles.",
     },
-    "TempBattleStatBoosterModifierType": {
-      description: "Increases the {{tempBattleStatName}} of all party members by 1 stage for 5 battles.",
+    "TempStatStageBoosterModifierType": {
+      description: "Increases the {{stat}} of all party members by 1 stage for 5 battles.",
     },
     "AttackTypeBoosterModifierType": {
       description: "Increases the power of a Pokémon's {{moveType}}-type moves by 20%.",
@@ -63,8 +63,8 @@ export const modifierType: ModifierTypeTranslationEntries = {
     "AllPokemonLevelIncrementModifierType": {
       description: "Increases all party members' level by {{levels}}.",
     },
-    "PokemonBaseStatBoosterModifierType": {
-      description: "Increases the holder's base {{statName}} by 10%. The higher your IVs, the higher the stack limit.",
+    "BaseStatBoosterModifierType": {
+      description: "Increases the holder's base {{stat}} by 10%. The higher your IVs, the higher the stack limit.",
     },
     "AllPokemonFullHpRestoreModifierType": {
       description: "Restores 100% HP for all Pokémon.",
@@ -185,7 +185,8 @@ export const modifierType: ModifierTypeTranslationEntries = {
     "SOOTHE_BELL": { name: "Soothe Bell" },
 
     "SCOPE_LENS": { name: "Scope Lens", description: "It's a lens for scoping out weak points. It boosts the holder's critical-hit ratio."},
-    "LEEK": { name: "Leek", description: "This very long and stiff stalk of leek boosts the critical-hit ratio of Farfetch'd's moves."},
+
+    DIRE_HIT: { name: "Dire Hit", extra: { "boosts": "Critical Hit Ratio" } },
 
     "EVIOLITE": { name: "Eviolite", description: "This mysterious evolutionary lump boosts the Defense and Sp. Def stats when held by a Pokémon that can still evolve." },
 
@@ -246,32 +247,30 @@ export const modifierType: ModifierTypeTranslationEntries = {
     "ENEMY_ENDURE_CHANCE": { name: "Endure Token" },
     "ENEMY_FUSED_CHANCE": { name: "Fusion Token", description: "Adds a 1% chance that a wild Pokémon will be a fusion." },
   },
-  SpeciesBoosterItem: {
+
+  SpeciesStatBoosterItem: {
     "LIGHT_BALL": { name: "Light Ball", description: "It's a mysterious orb that boosts Pikachu's Attack and Sp. Atk stats." },
     "THICK_CLUB": { name: "Thick Club", description: "This hard bone of unknown origin boosts Cubone or Marowak's Attack stat." },
     "METAL_POWDER": { name: "Metal Powder", description: "Extremely fine yet hard, this odd powder boosts Ditto's Defense stat." },
     "QUICK_POWDER": { name: "Quick Powder", description: "Extremely fine yet hard, this odd powder boosts Ditto's Speed stat." }
   },
-  TempBattleStatBoosterItem: {
+
+  TempStatStageBoosterItem: {
     "x_attack": "X Attack",
     "x_defense": "X Defense",
     "x_sp_atk": "X Sp. Atk",
     "x_sp_def": "X Sp. Def",
     "x_speed": "X Speed",
     "x_accuracy": "X Accuracy",
-    "dire_hit": "Dire Hit",
   },
 
-  TempBattleStatBoosterStatName: {
-    "ATK": "Attack",
-    "DEF": "Defense",
-    "SPATK": "Sp. Atk",
-    "SPDEF": "Sp. Def",
-    "SPD": "Speed",
-    "ACC": "Accuracy",
-    "CRIT": "Critical Hit Ratio",
-    "EVA": "Evasiveness",
-    "DEFAULT": "???",
+  BaseStatBoosterItem: {
+    "hp_up": "HP Up",
+    "protein": "Protein",
+    "iron": "Iron",
+    "calcium": "Calcium",
+    "zinc": "Zinc",
+    "carbos": "Carbos",
   },
 
   AttackTypeBoosterItem: {
@@ -294,14 +293,7 @@ export const modifierType: ModifierTypeTranslationEntries = {
     "black_glasses": "Black Glasses",
     "fairy_feather": "Fairy Feather",
   },
-  BaseStatBoosterItem: {
-    "hp_up": "HP Up",
-    "protein": "Protein",
-    "iron": "Iron",
-    "calcium": "Calcium",
-    "zinc": "Zinc",
-    "carbos": "Carbos",
-  },
+
   EvolutionItem: {
     "NONE": "None",
 

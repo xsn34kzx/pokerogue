@@ -3,6 +3,7 @@ import i18next from "i18next";
 
 export { Stat };
 
+// TODO: get rid of this
 export function getStatName(stat: Stat, shorten: boolean = false) {
   let ret: string = "";
   switch (stat) {

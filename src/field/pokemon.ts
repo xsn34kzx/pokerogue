@@ -10,7 +10,7 @@ import * as Utils from "../utils";
 import { Type, TypeDamageMultiplier, getTypeDamageMultiplier, getTypeRgb } from "../data/type";
 import { getLevelTotalExp } from "../data/exp";
 import { Stat } from "../data/pokemon-stat";
-import { DamageMoneyRewardModifier, EnemyDamageBoosterModifier, EnemyDamageReducerModifier, EnemyEndureChanceModifier, EnemyFusionChanceModifier, HiddenAbilityRateBoosterModifier, PokemonBaseStatModifier, PokemonFriendshipBoosterModifier, PokemonHeldItemModifier, PokemonNatureWeightModifier, ShinyRateBoosterModifier, SurviveDamageModifier, TempBattleStatBoosterModifier, StatBoosterModifier, CritBoosterModifier, TerastallizeModifier } from "../modifier/modifier";
+import { DamageMoneyRewardModifier, EnemyDamageBoosterModifier, EnemyDamageReducerModifier, EnemyEndureChanceModifier, EnemyFusionChanceModifier, HiddenAbilityRateBoosterModifier, PokemonBaseStatModifier, PokemonFriendshipBoosterModifier, PokemonHeldItemModifier, PokemonNatureWeightModifier, ShinyRateBoosterModifier, SurviveDamageModifier, TempStatStageBoosterModifier, StatBoosterModifier, CritBoosterModifier, TerastallizeModifier } from "../modifier/modifier";
 import { PokeballType } from "../data/pokeball";
 import { Gender } from "../data/gender";
 import { initMoveAnim, loadMoveAnimAssets } from "../data/battle-anims";
@@ -18,7 +18,6 @@ import { Status, StatusEffect, getRandomStatus } from "../data/status-effect";
 import { pokemonEvolutions, pokemonPrevolutions, SpeciesFormEvolution, SpeciesEvolutionCondition, FusionSpeciesFormEvolution } from "../data/pokemon-evolutions";
 import { reverseCompatibleTms, tmSpecies, tmPoolTiers } from "../data/tms";
 import { DamagePhase, FaintPhase, LearnMovePhase, MoveEffectPhase, ObtainStatusEffectPhase, StatChangePhase, SwitchSummonPhase, ToggleDoublePositionPhase, MoveEndPhase } from "../phases";
-import { BattleStat } from "../data/battle-stat";
 import { BattlerTag, BattlerTagLapseType, EncoreTag, GroundedTag, HighestStatBoostTag, TypeImmuneTag, getBattlerTag, SemiInvulnerableTag, TypeBoostTag } from "../data/battler-tags";
 import { WeatherType } from "../data/weather";
 import { TempBattleStat } from "../data/temp-battle-stat";
@@ -51,7 +50,7 @@ import { Biome } from "#enums/biome";
 import { Moves } from "#enums/moves";
 import { Species } from "#enums/species";
 import { getPokemonNameWithAffix } from "#app/messages.js";
-import { InBattleStat, PermanentStat } from "#app/enums/stat.js";
+import { BattleStat, PermanentStat } from "#app/enums/stat";
 
 export enum FieldPosition {
   CENTER,
@@ -690,7 +689,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
    * @param value the desired numeric value to be written to the desired {@linkcode Stat}
    * @param ignoreOverride {@linkcode boolean} to write to actual stats (`true`) or to in-battle overridden stats (`false`)
    */
-  setStat(stat: PermanentStat, value: number, ignoreOverride: boolean = true) {
+  setStat(stat: PermanentStat, value: number, ignoreOverride: boolean = true): void {
     if (value >= 0) {
       if (!ignoreOverride && this.summonData) {
         this.summonData.stats[stat] = value;
@@ -700,41 +699,32 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     }
   }
 
-  getStatStage(stat: InBattleStat): number | null {
+  getStatStages(): number[] | null {
     if (this.summonData) {
-      return this.summonData.battleStats[stat - 1];
+      return this.summonData.statStages;
     }
     return null;
   }
 
-  calculateInBattleStat(stat: InBattleStat & PermanentStat, target?: Pokemon, move?: Move, isCritical: boolean = false): number {
-    const stage = new Utils.IntegerHolder(this.getStatStage(stat));
-    const calculated = new Utils.NumberHolder(this.getStat(stat, false));
-
-    if (target) {
-      if (isCritical) {
-        switch (stat) {
-        case Stat.ATK:
-        case Stat.SPATK:
-          Math.max(stage.value, 0);
-          break;
-        case Stat.DEF:
-        case Stat.SPDEF:
-          Math.min(stage.value, 0);
-          break;
-        }
-      }
-
-      applyAbAttrs(IgnoreOpponentStatChangesAbAttr, target, null, stage);
-      if (move) {
-        applyMoveAttrs(IgnoreOpponentStatChangesAttr, this, target, move, stage);
-      }
+  /**
+   * Retrieves the in-battle stage of the {@linkcode Stat}.
+   * @param stat the {@linkcode BattleStat} whose stage is desired
+   * @returns the stage of the desired {@linkcode Stat} if available, 0 otherwise
+   */
+  getStatStage(stat: BattleStat): number {
+    if (this.summonData) {
+      return this.summonData.statStages[stat - 1];
     }
-
-    return Math.floor(calculated.value);
+    return 0;
   }
 
-  getBattleStat(stat: InBattleStat, opponent?: Pokemon, move?: Move, isCritical: boolean = false): integer {
+  setStatStage(stat: BattleStat, value: number): void {
+    if ((value >= -6) && (value <= 6) && this.summonData) {
+      this.summonData.statStages[stat - 1] = value;
+    }
+  }
+
+  getBattleStat(stat: BattleStat & PermanentStat, opponent?: Pokemon, move?: Move, isCritical: boolean = false): number {
     const statLevel = new Utils.IntegerHolder(this.getStatStage(stat));
     if (opponent) {
       if (isCritical) {
@@ -755,7 +745,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
       }
     }
     if (this.isPlayer()) {
-      this.scene.applyModifiers(TempBattleStatBoosterModifier, this.isPlayer(), battleStat as integer as TempBattleStat, statLevel);
+      this.scene.applyModifiers(TempStatStageBoosterModifier, this.isPlayer(), stat, statLevel);
     }
     const statValue = new Utils.NumberHolder(this.getStat(stat, false));
     this.scene.applyModifiers(StatBoosterModifier, this.isPlayer(), this, stat, statValue);
@@ -767,7 +757,8 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
         break;
       }
     }
-    applyBattleStatMultiplierAbAttrs(BattleStatMultiplierAbAttr, this, battleStat, statValue);
+    applyBattleStatMultiplierAbAttrs(BattleStatMultiplierAbAttr, this, stat, statValue);
+    statLevel.value = Math.max(statLevel.value, 6);
     let ret = statValue.value * (Math.max(2, 2 + statLevel.value) / Math.max(2, 2 - statLevel.value));
     switch (stat) {
     case Stat.ATK:
@@ -1872,8 +1863,8 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
       return 1;
     }
 
-    const userAccuracyLevel = new Utils.IntegerHolder(this.summonData.battleStats[BattleStat.ACC]);
-    const targetEvasionLevel = new Utils.IntegerHolder(target.summonData.battleStats[BattleStat.EVA]);
+    const userAccuracyLevel = new Utils.IntegerHolder(this.getStatStage(Stat.ACC));
+    const targetEvasionLevel = new Utils.IntegerHolder(this.getStatStage(Stat.EVA));
 
     applyAbAttrs(IgnoreOpponentStatChangesAbAttr, target, null, userAccuracyLevel);
     applyAbAttrs(IgnoreOpponentStatChangesAbAttr, this, null, targetEvasionLevel);
@@ -4123,7 +4114,7 @@ export class PokemonSummonData {
   public gender: Gender;
   public fusionGender: Gender;
   public stats: integer[] = [ 0, 0, 0, 0, 0, 0];
-  public moveset: PokemonMove[];
+  public moveset: (PokemonMove | null)[];
   // If not initialized this value will not be populated from save data.
   public types: Type[] = null;
 }
